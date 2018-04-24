@@ -42,6 +42,8 @@ set(
   displayed_categories_modifiers.cpp
   displayed_categories_modifiers.hpp
   everywhere_search_params.hpp
+  extrapolation/extrapolator.cpp
+  extrapolation/extrapolator.hpp
   feature_vec_model.cpp
   feature_vec_model.hpp
   framework.cpp
