@@ -12,7 +12,7 @@
 namespace
 {
 uint64_t constexpr kMaxExtrapolationTimeMs = 1000;
-uint64_t constexpr kExtrapolationPeriodMs = 100;
+uint64_t constexpr kExtrapolationPeriodMs = 200;
 double constexpr kMaxExtrapolationSpeedMPerS = 120.0;
 
 double LinearExtrapolationOfOneParam(double param1, double param2, uint64_t timeBetweenPointsMs,
