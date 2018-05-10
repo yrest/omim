@@ -13,59 +13,69 @@ namespace
 {
 uint64_t constexpr kMaxExtrapolationTimeMs = 1000;
 uint64_t constexpr kExtrapolationPeriodMs = 200;
-double constexpr kMaxExtrapolationSpeedMPerS = 120.0;
+double constexpr kMaxExtrapolationSpeedMPS = 120.0;
 
-double LinearExtrapolationOfOneParam(double param1, double param2, uint64_t timeBetweenPointsMs,
-                                     uint64_t timeAfterPoint2Ms)
+double Delta(double param1, double param2, uint64_t timeBetweenPointsMs, uint64_t timeAfterParam2Ms)
 {
-  return (param2 - param1) * timeAfterPoint2Ms / timeBetweenPointsMs;
+  return (param2 - param1) * timeAfterParam2Ms / timeBetweenPointsMs;
 }
+
+class LinearExtrapolator
+{
+public:
+  LinearExtrapolator(uint64_t timeBetweenMs, uint64_t timeAfterMs)
+    : m_timeBetweenMs(timeBetweenMs), m_timeAfterMs(timeAfterMs)
+  {
+  }
+
+  double Extrapolate(double x1, double x2)
+  {
+    return x2 + (x2 - x1) / m_timeBetweenMs * m_timeAfterMs;
+  }
+
+private:
+  uint64_t m_timeBetweenMs;
+  uint64_t m_timeAfterMs;
+};
 }  // namespace
 
-namespace position_extrapolator
+namespace extrapolation
 {
 using namespace std;
 
-location::GpsInfo LinearExtrapolation(location::GpsInfo const & point1, location::GpsInfo const & point2,
+location::GpsInfo LinearExtrapolation(location::GpsInfo const & gpsInfo1,
+                                      location::GpsInfo const & gpsInfo2,
                                       uint64_t timeAfterPoint2Ms)
 {
   auto const timeBetweenPointsMs =
-      static_cast<uint64_t>((point2.m_timestamp - point1.m_timestamp) * 1000);
+      static_cast<uint64_t>((gpsInfo2.m_timestamp - gpsInfo1.m_timestamp) * 1000);
 
-  location::GpsInfo extrapolated = point2;
+  location::GpsInfo extrapolated = gpsInfo2;
+  LinearExtrapolator extrapolator(timeBetweenPointsMs, timeAfterPoint2Ms);
 
   extrapolated.m_timestamp += timeAfterPoint2Ms;
 
-  extrapolated.m_longitude += LinearExtrapolationOfOneParam(
-      point1.m_longitude, point2.m_longitude, timeBetweenPointsMs, timeAfterPoint2Ms);
+  extrapolated.m_longitude = extrapolator.Extrapolate(gpsInfo1.m_longitude, gpsInfo2.m_longitude);
 
-  extrapolated.m_latitude += LinearExtrapolationOfOneParam(point1.m_latitude, point2.m_latitude,
-                                                           timeBetweenPointsMs, timeAfterPoint2Ms);
+  extrapolated.m_latitude = extrapolator.Extrapolate(gpsInfo1.m_latitude, gpsInfo2.m_latitude);
 
-  extrapolated.m_horizontalAccuracy +=
-      LinearExtrapolationOfOneParam(point1.m_horizontalAccuracy, point2.m_horizontalAccuracy,
-                                    timeBetweenPointsMs, timeAfterPoint2Ms);
-  extrapolated.m_altitude += LinearExtrapolationOfOneParam(point1.m_altitude, point2.m_altitude,
-                                                           timeBetweenPointsMs, timeAfterPoint2Ms);
+  extrapolated.m_horizontalAccuracy =
+      extrapolator.Extrapolate(gpsInfo1.m_horizontalAccuracy, gpsInfo2.m_horizontalAccuracy);
 
-  if (point1.m_verticalAccuracy != -1 && point2.m_verticalAccuracy != -1)
+  extrapolated.m_altitude = extrapolator.Extrapolate(gpsInfo1.m_altitude, gpsInfo2.m_altitude);
+
+  if (gpsInfo1.HasVerticalAccuracy() && gpsInfo2.HasVerticalAccuracy())
   {
-    extrapolated.m_verticalAccuracy +=
-        LinearExtrapolationOfOneParam(point1.m_verticalAccuracy, point2.m_verticalAccuracy,
-                                      timeBetweenPointsMs, timeAfterPoint2Ms);
+    extrapolated.m_verticalAccuracy =
+        extrapolator.Extrapolate(gpsInfo1.m_verticalAccuracy, gpsInfo2.m_verticalAccuracy);
   }
 
-  if (point1.m_bearing != -1 && point2.m_bearing != -1)
-  {
-    extrapolated.m_bearing += LinearExtrapolationOfOneParam(point1.m_bearing, point2.m_bearing,
-                                                            timeBetweenPointsMs, timeAfterPoint2Ms);
-  }
+  if (gpsInfo1.HasBearing() && gpsInfo2.HasBearing())
+    extrapolated.m_bearing = extrapolator.Extrapolate(gpsInfo1.m_bearing, gpsInfo2.m_bearing);
 
-  if (point1.m_speed != -1 && point2.m_speed != -1)
-  {
-    extrapolated.m_speed += LinearExtrapolationOfOneParam(point1.m_speed, point2.m_speed,
-                                                          timeBetweenPointsMs, timeAfterPoint2Ms);
-  }
+  if (gpsInfo1.HasSpeed() && gpsInfo2.HasSpeed())
+    extrapolated.m_speed = extrapolator.Extrapolate(gpsInfo1.m_speed, gpsInfo2.m_speed);
+
   return extrapolated;
 }
 
@@ -94,7 +104,7 @@ void Extrapolator::Routine::Do()
         }
         else
         {
-          if (m_lastGpsInfo.m_source != location::EUndefine)
+          if (m_lastGpsInfo.m_source != location::EUndefined)
           {
             location::GpsInfo gpsInfo = m_lastGpsInfo;
             m_extrapolatedLocationUpdate(gpsInfo);
@@ -129,8 +139,8 @@ bool Extrapolator::Routine::DoesExtrapolationWork(uint64_t extrapolationTimeMs) 
   // Please see comment in declaration of class GpsInfo for details.
 
   if (m_extrapolationCounter == m_extrapolationCounterUndefined ||
-      m_lastGpsInfo.m_source == location::EUndefine ||
-      m_beforeLastGpsInfo.m_source == location::EUndefine ||
+      m_lastGpsInfo.m_source == location::EUndefined ||
+      m_beforeLastGpsInfo.m_source == location::EUndefined ||
       m_beforeLastGpsInfo.m_timestamp >= m_lastGpsInfo.m_timestamp)
   {
     return false;
@@ -141,8 +151,8 @@ bool Extrapolator::Routine::DoesExtrapolationWork(uint64_t extrapolationTimeMs) 
                           m_lastGpsInfo.m_latitude, m_lastGpsInfo.m_longitude);
   double const timeS = m_lastGpsInfo.m_timestamp - m_beforeLastGpsInfo.m_timestamp;
 
-  // Switching off  extrapolation based on speed.
-  return distM / timeS < kMaxExtrapolationSpeedMPerS;
+  // Switching off extrapolation based on speed.
+  return distM / timeS < kMaxExtrapolationSpeedMPS;
   // @TODO(bykoianko) Switching off extrapolation based on acceleration should be implemented.
 }
 
@@ -159,4 +169,4 @@ void Extrapolator::OnLocationUpdate(location::GpsInfo & info)
   CHECK(routine, ());
   routine->SetGpsInfo(info);
 }
-}  // namespace position_extrapolator
+}  // namespace extrapolation

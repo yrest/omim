@@ -9,7 +9,7 @@
 namespace
 {
 using namespace location;
-using namespace position_extrapolator;
+using namespace extrapolation;
 
 void TestGpsInfo(GpsInfo const & tested, GpsInfo const & expected)
 {
