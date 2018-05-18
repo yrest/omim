@@ -45,18 +45,7 @@ UNIT_TEST(LinearExtrapolation)
                           1.0 /* m_bearing */,
                           12.0 /* m_speed */};
   // 0 ms after |point2|.
-  {
-    GpsInfo const expected = {EAppleNative,
-                              1.0 /* m_timestamp */,
-                              1.01 /* m_latitude */,
-                              1.01 /* m_longitude */,
-                              11.0 /* m_horizontalAccuracy */,
-                              2.0 /* m_altitude */,
-                              10.0 /* m_verticalAccuracy */,
-                              1.0 /* m_bearing */,
-                              12.0 /* m_speed */};
-    TestGpsInfo(LinearExtrapolation(point1, point2, 0 /* timeAfterPoint2Ms */), expected);
-  }
+  TestGpsInfo(LinearExtrapolation(point1, point2, 0 /* timeAfterPoint2Ms */), point2);
 
   // 100 ms after |point2|.
   {
