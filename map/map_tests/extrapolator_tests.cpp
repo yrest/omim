@@ -56,7 +56,7 @@ UNIT_TEST(LinearExtrapolation)
                               11.1 /* m_horizontalAccuracy */,
                               2.1 /* m_altitude */,
                               10.0 /* m_verticalAccuracy */,
-                              1.1 /* m_bearing */,
+                              1.0 /* m_bearing */,
                               12.2 /* m_speed */};
     TestGpsInfo(LinearExtrapolation(point1, point2, 100 /* timeAfterPoint2Ms */), expected);
   }
@@ -70,7 +70,7 @@ UNIT_TEST(LinearExtrapolation)
                               11.2 /* m_horizontalAccuracy */,
                               2.2 /* m_altitude */,
                               10.0 /* m_verticalAccuracy */,
-                              1.2 /* m_bearing */,
+                              1.0 /* m_bearing */,
                               12.4 /* m_speed */};
     TestGpsInfo(LinearExtrapolation(point1, point2, 200 /* timeAfterPoint2Ms */), expected);
   }
@@ -84,7 +84,7 @@ UNIT_TEST(LinearExtrapolation)
                               12.0 /* m_horizontalAccuracy */,
                               3.0 /* m_altitude */,
                               10.0 /* m_verticalAccuracy */,
-                              2.0 /* m_bearing */,
+                              1.0 /* m_bearing */,
                               14.0 /* m_speed */};
     TestGpsInfo(LinearExtrapolation(point1, point2, 1000 /* timeAfterPoint2Ms */), expected);
   }

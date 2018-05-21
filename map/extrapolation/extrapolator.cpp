@@ -59,8 +59,10 @@ location::GpsInfo LinearExtrapolation(location::GpsInfo const & gpsInfo1,
   if (gpsInfo1.HasVerticalAccuracy() && gpsInfo2.HasVerticalAccuracy())
     result.m_verticalAccuracy = e.Extrapolate(gpsInfo1.m_verticalAccuracy, gpsInfo2.m_verticalAccuracy);
 
-  if (gpsInfo1.HasBearing() && gpsInfo2.HasBearing())
-    result.m_bearing = e.Extrapolate(gpsInfo1.m_bearing, gpsInfo2.m_bearing);
+  // @TODO(bykoianko) Now |result.m_bearing == gpsInfo2.m_bearing|.
+  // In case of |gpsInfo1.HasBearing() && gpsInfo2.HasBearing() == true|
+  // consider finding an average value between |gpsInfo1.m_bearing| and |gpsInfo2.m_bearing|
+  // taking into account that they are periodic.
 
   if (gpsInfo1.HasSpeed() && gpsInfo2.HasSpeed())
     result.m_speed = e.Extrapolate(gpsInfo1.m_speed, gpsInfo2.m_speed);
@@ -152,7 +154,7 @@ Extrapolator::Extrapolator(ExtrapolatedLocationUpdate const & update)
   m_extrapolatedLocationThread.Create(make_unique<Routine>(update));
 }
 
-void Extrapolator::OnLocationUpdate(location::GpsInfo & info)
+void Extrapolator::OnLocationUpdate(location::GpsInfo const & info)
 {
   auto * routine = m_extrapolatedLocationThread.GetRoutineAs<Routine>();
   CHECK(routine, ());

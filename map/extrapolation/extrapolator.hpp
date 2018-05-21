@@ -28,7 +28,7 @@ public:
   /// \param update is a function which is called with params according to extrapolated position.
   /// |update| will be called on gui thread.
   explicit Extrapolator(ExtrapolatedLocationUpdate const & update);
-  void OnLocationUpdate(location::GpsInfo & info);
+  void OnLocationUpdate(location::GpsInfo const & info);
   // @TODO(bykoianko) Gyroscope information should be taken into account as well for calculation
   // extrapolated position.
 
